@@ -5,16 +5,23 @@ size_t  ft_strlen(const char *s);
 void	ft_putnbr_fd(long n, int fd);
 //void	fast_log(const char *action, t_philoeters *param);
 
-void	log_and_sleep(const char *action, t_philo *philo, int duration)
+int	log_and_sleep(const char *action, t_philo *philo, int duration)
 {
 	long	start;
 	long	timestamp;
 
+	if (check_dead(philo))
+		return (1);
 	timestamp = current_timestamp_ms() - philo->start_time;
 	printf("%li %i %s\n", timestamp, philo->id, action);
 	start = current_timestamp_ms();
 	while (current_timestamp_ms() - start < duration)
+	{	
 		usleep(100);
+		if (check_dead(philo))
+			return (1);
+	}
+	return (0);
 }
 /*
 void	log_and_sleep(const char *action, t_philo *philo, int duration)

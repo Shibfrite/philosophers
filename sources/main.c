@@ -5,85 +5,78 @@ static int	manage_threads_and_mutexes(const int *args);
 
 int	main(int ac, const char **args)
 {
-	const int	args_num[6];
+	int	args_num[6];
 
 	if (ac != 5 && ac != 6)
 		return (write(2, "arg error\n", 10), 1);
-	if (parsing(args, (int *)args_num))
+	if (parsing(args, args_num))
 		return (1);
 	if (!args_num[0])
 		return (0);
-	if (manage_threads_and_mutexes(args_num))
+	if (manage_threads_and_mutexes((const int *)args_num))
 		return (1);
 	return (0);
 }
 
 
 //--
-static void				init_fork(t_fork *fork);
-static pthread_t	*start_philo(const int *args, long start, int i, t_fork *forks);
+static void	init_fork(t_fork *fork);
+static t_philo	init_philo(const int *args, long start, int i, int *dead_flag);
 
 static int	manage_threads_and_mutexes(const int *args)
 {
-	pthread_t	*ids;
-	t_fork		forks[200];
+	t_fork		forks[MAX_PHILO];
+	t_philo		philo[MAX_PHILO];
+	pthread_t	thread_id[MAX_PHILO];
 	long		start;
 	int			i;
+	int			dead;
 
 	start = current_timestamp_ms();
 	i = 0;
+	dead = 0;
 	init_fork(&forks[i]);
 	while (i < args[0])
 	{
 		if (i + 1 <= args[0])
 			init_fork(&forks[i + 1]);
-		ids = start_philo(args, start, i, forks);
+		philo[i] = init_philo(args, start, i, &dead);
+		philo[i].forks = forks;
+		pthread_create(&thread_id[i], NULL, routine, &philo[i]);
 		++i;
 	}
 	while (i--)
-	    pthread_join(ids[i], NULL);
-    printf("Main finished\n");
+	    pthread_join(thread_id[i], NULL);
     return (0);
 }
 
 static void	init_fork(t_fork *fork)
 {
-    pthread_mutex_t	mutex;
-	
 	fork->state = 0;
-	pthread_mutex_init(&mutex, NULL);
-	fork->mutex = mutex;
+	pthread_mutex_init(&fork->mutex, NULL);
 }
 
-static pthread_t *start_philo(const int *args, long start, int i, t_fork *forks)
+static t_philo	init_philo(const int *args, long start, int i, int *dead_flag)
 {
-	t_philo			philo[200];
-    pthread_t		philo_id[200];
-    pthread_mutex_t	meal[200];
-    pthread_mutex_t	dead[200];
-	int				*dead_flag;
+	t_philo			philo;
 
-	dead_flag = 0;
-	philo[i].id = i;
-	philo[i].forks = forks;
-	philo[i].start_time = start;
-	philo[i].args = args;
-	pthread_mutex_init(&meal[i], NULL);
-	philo[i].mutexes[1] = &meal[i];
-	pthread_mutex_init(&dead[i], NULL);
-	philo[i].mutexes[1] = &dead[i];
-	philo[i].dead = dead_flag;
-	pthread_create(&philo_id[i], NULL, routine, &philo[i]);
-	return (philo_id);
+	philo.id = i;
+	philo.start_time = start;
+	philo.last_meal = start;
+	philo.args = args;
+	pthread_mutex_init(&philo.mutexes[MUTEX_DEAD], NULL);
+	pthread_mutex_init(&philo.mutexes[MUTEX_MEAL], NULL);
+	philo.dead = dead_flag;
+	return (philo);
 }
 
 /*
 int main(int ac, char **av)
 {
-	pthread_mutex_t fork[200], print, dead, meal[200];
-	pthread_t	  philo[200];
-	t_parameters    param[200];
-	long		    last_meal[200];
+	pthread_mutex_t fork[MAX_PHILO], print, dead, meal[MAX_PHILO];
+	pthread_t	  philo[MAX_PHILO];
+	t_parameters    param[MAX_PHILO];
+	long		    last_meal[MAX_PHILO];
 	int			     philo_count = 5;
 	int			     i;
 	int			     dead_flag = 0;
@@ -139,6 +132,8 @@ static int	parsing(const char **args, int *args_num)
 	}
 	if (!start[0])
 		return (write(2, "no philosopher\n", 15), 1);
+	if (start[0] > MAX_PHILO)
+		return (write(2, "too many philosophers\n", 22), 1);
 	args_num = start;
 	return (0);
 }

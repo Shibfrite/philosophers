@@ -2,6 +2,7 @@
 
 static int	attempt_fork_acquisition(t_philo *philo, int first, int second);
 static void	release_forks(t_philo *philo, int first, int second);
+static int  philo_cycle(t_philo *philo, int first_fork, int second_fork);
 
 void    *routine(void *args)
 {
@@ -14,7 +15,6 @@ void    *routine(void *args)
     id = philo->id;
     first_fork = (id + id % 2) % philo->args[0];
     second_fork = (id + 1 - id % 2) % philo->args[0];
-    printf("in routine\n");
     while (1)
         if (philo_cycle(philo, first_fork, second_fork))
             break ;
@@ -23,7 +23,8 @@ void    *routine(void *args)
 
 static int  philo_cycle(t_philo *philo, int first_fork, int second_fork)
 {
-    log_and_sleep("is thinking", philo, 0);
+	if (log_and_sleep("is thinking", philo, 0))
+		return (1);
     /*if (philo->args[0] == 1)
     {
         printf("bro took the only fork and left\n");
@@ -31,79 +32,81 @@ static int  philo_cycle(t_philo *philo, int first_fork, int second_fork)
     }*/
     if (attempt_fork_acquisition(philo, first_fork, second_fork))
         return (1);
-    log_and_sleep("is eating", philo, philo->args[TIMER_EATING]);
+    if(log_and_sleep("is eating", philo, philo->args[TIMER_EATING]))
+        return (1);
     release_forks(philo, first_fork, second_fork);
-    pthread_mutex_lock(philo->mutexes[MUTEX_MEAL]);
-    printf("last meal: %li\n", current_timestamp_ms() - philo->last_meal);
-    philo->last_meal = current_timestamp_ms();
-    pthread_mutex_unlock(philo->mutexes[MUTEX_MEAL]);
-    log_and_sleep("is sleeping", philo, philo->args[TIMER_SLEEPING]);
+    if (log_and_sleep("is sleeping", philo, philo->args[TIMER_SLEEPING]))
+        return (1);
     return (0);
 }
 
 static int attempt_fork_acquisition(t_philo *philo, int first, int second)
 {
-	while (1)
-	{
-		pthread_mutex_lock(&philo->forks[first]);
-		if (!philo->fork_state[first])
-		{
-			pthread_mutex_lock(&philo->forks[second]);
-			if (!philo->fork_state[second])
-			{
-				philo->fork_state[first] = 1;
-				pthread_mutex_unlock(&philo->forks[first]);
-				philo->fork_state[second] = 1;
-				pthread_mutex_unlock(&philo->forks[second]);
-				return (0);
-			}
-			pthread_mutex_unlock(&philo->forks[second]);
-		}
-		pthread_mutex_unlock(&philo->forks[first]);
-		usleep(1000);
-	}
+    while (1)
+    {
+		if (check_dead(philo))
+			return (1);
+        pthread_mutex_lock(&philo->forks[first].mutex);
+        if (philo->forks[first].state == 0)
+        {
+            pthread_mutex_lock(&philo->forks[second].mutex);
+            if (philo->forks[second].state == 0)
+            {
+                philo->forks[first].state = 1;
+                philo->forks[second].state = 1;
+                pthread_mutex_unlock(&philo->forks[second].mutex);
+                pthread_mutex_unlock(&philo->forks[first].mutex);
+                return (0);
+            }
+            pthread_mutex_unlock(&philo->forks[second].mutex);
+        }
+        pthread_mutex_unlock(&philo->forks[first].mutex);
+        usleep(1000);
+    }
+    pthread_mutex_lock(&philo->mutexes[MUTEX_MEAL]);
+	philo->last_meal = current_timestamp_ms();
+    pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
 }
 
 static void release_forks(t_philo *philo, int first, int second)
 {
-	pthread_mutex_lock(&philo->forks[first]);
-	philo->fork_state[first] = 0;
-	pthread_mutex_unlock(&philo->forks[first]);
+    pthread_mutex_lock(&philo->forks[first].mutex);
+    philo->forks[first].state = 0;
+    pthread_mutex_unlock(&philo->forks[first].mutex);
 
-	pthread_mutex_lock(&philo->forks[second]);
-	philo->fork_state[second] = 0;
-	pthread_mutex_unlock(&philo->forks[second]);
+    pthread_mutex_lock(&philo->forks[second].mutex);
+    philo->forks[second].state = 0;
+    pthread_mutex_unlock(&philo->forks[second].mutex);
 }
 
-void	print_dead(long timestamp, int id)
+int check_dead(t_philo *philo)
 {
-	ft_putnbr_fd(timestamp, 1);
-	write(1, " ", 1);
-	ft_putnbr_fd(id, 1);
-	write(1, " died\n", 6);
+    long now;
+    int dead_status;
+
+    pthread_mutex_lock(&philo->mutexes[MUTEX_DEAD]);
+    dead_status = *philo->dead;
+    pthread_mutex_unlock(&philo->mutexes[MUTEX_DEAD]);
+    if (dead_status)
+        return 1;
+
+    pthread_mutex_lock(&philo->mutexes[MUTEX_MEAL]);
+    now = current_timestamp_ms();
+    if (now - philo->last_meal > philo->args[TIMER_DEAD])
+    {
+        pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
+
+        pthread_mutex_lock(&philo->mutexes[MUTEX_DEAD]);
+        *philo->dead = 1;
+        pthread_mutex_unlock(&philo->mutexes[MUTEX_DEAD]);
+
+        printf("%li %i died\n", now - philo->start_time, philo->id);
+        return 1;
+    }
+    pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
+    return 0;
 }
 
-int	 check_dead(t_philo *philo)
-{
-	long	now;
-
-	pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
-	if (*philo->dead)
-		return (pthread_mutex_unlock(philo->mutexes[MUTEX_DEAD]), 1);
-	pthread_mutex_lock(philo->mutexes[MUTEX_MEAL]);
-	now = current_timestamp_ms();
-	if (!(*philo->dead_flag) &&
-		(now - *philo->last_meal > philo->args[TIMER_DEAD]))
-	{
-		*philo->dead_flag = 1;
-		pthread_mutex_unlock(philo->mutexes[MUTEX_MEAL]);
-		print_dead(now - philo->start_time, philo->id + 1);
-	}
-	else
-		pthread_mutex_unlock(philo->mutexes[MUTEX_MEAL]);
-	pthread_mutex_unlock(philo->mutexes[MUTEX_DEAD]);
-	return (*philo->dead_flag);
-}
 /*
 static int attempt_fork_acquisition(t_philoeters *p, int first, int second)
 {
@@ -112,7 +115,7 @@ static int attempt_fork_acquisition(t_philoeters *p, int first, int second)
 	while (1)
 	{
 		pthread_mutex_lock(p->mutexes[MUTEX_DEAD]);
-		local_dead = *p->dead_flag;
+		local_dead = *p->dead;
 		pthread_mutex_unlock(p->mutexes[MUTEX_DEAD]);
 		if (check_dead(p) || local_dead)
 			return (0);
@@ -158,7 +161,7 @@ void *routine(void *arg)
 	while (1)
 	{
 		pthread_mutex_lock(p->mutexes[MUTEX_DEAD]);
-		local_dead = *p->dead_flag;
+		local_dead = *p->dead;
 		pthread_mutex_unlock(p->mutexes[MUTEX_DEAD]);
 		if (check_dead(p) || local_dead)
 			break ;
