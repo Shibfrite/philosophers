@@ -23,18 +23,21 @@ int	main(int ac, const char **args)
 static void	init_fork(t_fork *fork);
 static t_philo	init_philo(const int *args, long start, int i, int *dead_flag);
 
-static int	manage_threads_and_mutexes(const int *args)
+static int  manage_threads_and_mutexes(const int *args)
 {
-	t_fork		forks[MAX_PHILO];
-	t_philo		philo[MAX_PHILO];
-	pthread_t	thread_id[MAX_PHILO];
-	long		start;
-	int			i;
-	int			dead;
+	t_fork			forks[MAX_PHILO];
+	t_philo			philo[MAX_PHILO];
+	pthread_t		thread_id[MAX_PHILO];
+	long			start;
+	int				i;
+	int				dead;
+	pthread_mutex_t dead_mutex;
 
 	start = current_timestamp_ms();
-	i = 0;
 	dead = 0;
+	pthread_mutex_init(&dead_mutex, NULL);
+
+	i = 0;
 	init_fork(&forks[i]);
 	while (i < args[0])
 	{
@@ -42,13 +45,28 @@ static int	manage_threads_and_mutexes(const int *args)
 			init_fork(&forks[i + 1]);
 		philo[i] = init_philo(args, start, i, &dead);
 		philo[i].forks = forks;
+		philo[i].dead_mutex = &dead_mutex; // share one mutex
 		pthread_create(&thread_id[i], NULL, routine, &philo[i]);
 		++i;
 	}
 	while (i--)
-	    pthread_join(thread_id[i], NULL);
-    return (0);
+		pthread_join(thread_id[i], NULL);
+	return (0);
 }
+
+static t_philo init_philo(const int *args, long start, int i, int *dead_flag)
+{
+	t_philo philo;
+
+	philo.id = i;
+	philo.start_time = start;
+	philo.last_meal = start;
+	philo.args = args;
+	pthread_mutex_init(&philo.mutexes[MUTEX_MEAL], NULL);
+	philo.dead = dead_flag;
+	return philo;
+}
+
 
 static void	init_fork(t_fork *fork)
 {
@@ -56,31 +74,17 @@ static void	init_fork(t_fork *fork)
 	pthread_mutex_init(&fork->mutex, NULL);
 }
 
-static t_philo	init_philo(const int *args, long start, int i, int *dead_flag)
-{
-	t_philo			philo;
-
-	philo.id = i;
-	philo.start_time = start;
-	philo.last_meal = start;
-	philo.args = args;
-	pthread_mutex_init(&philo.mutexes[MUTEX_DEAD], NULL);
-	pthread_mutex_init(&philo.mutexes[MUTEX_MEAL], NULL);
-	philo.dead = dead_flag;
-	return (philo);
-}
-
 /*
 int main(int ac, char **av)
 {
 	pthread_mutex_t fork[MAX_PHILO], print, dead, meal[MAX_PHILO];
 	pthread_t	  philo[MAX_PHILO];
-	t_parameters    param[MAX_PHILO];
-	long		    last_meal[MAX_PHILO];
-	int			     philo_count = 5;
-	int			     i;
-	int			     dead_flag = 0;
-	long		    start = current_timestamp_ms();
+	t_parameters	param[MAX_PHILO];
+	long			last_meal[MAX_PHILO];
+	int				 philo_count = 5;
+	int				 i;
+	int				 dead_flag = 0;
+	long			start = current_timestamp_ms();
 
 	if (ac != 4)
 		return (0);

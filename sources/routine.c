@@ -4,107 +4,110 @@ static int	attempt_fork_acquisition(t_philo *philo, int first, int second);
 static void	release_forks(t_philo *philo, int first, int second);
 static int  philo_cycle(t_philo *philo, int first_fork, int second_fork);
 
-void    *routine(void *args)
+void	*routine(void *args)
 {
-    t_philo *philo;
-    int     id;
-    int     first_fork;
-    int     second_fork;
+	t_philo *philo;
+	int	 id;
+	int	 first_fork;
+	int	 second_fork;
 
-    philo = (t_philo *)args;
-    id = philo->id;
-    first_fork = (id + id % 2) % philo->args[0];
-    second_fork = (id + 1 - id % 2) % philo->args[0];
-    while (1)
-        if (philo_cycle(philo, first_fork, second_fork))
-            break ;
-    return (NULL);
+	philo = (t_philo *)args;
+	id = philo->id;
+	first_fork = (id + id % 2) % philo->args[0];
+	second_fork = (id + 1 - id % 2) % philo->args[0];
+	while (1)
+		if (philo_cycle(philo, first_fork, second_fork))
+			break ;
+	return (NULL);
 }
 
 static int  philo_cycle(t_philo *philo, int first_fork, int second_fork)
 {
 	if (log_and_sleep("is thinking", philo, 0))
 		return (1);
-    /*if (philo->args[0] == 1)
-    {
-        printf("bro took the only fork and left\n");
-        return (1);
-    }*/
-    if (attempt_fork_acquisition(philo, first_fork, second_fork))
-        return (1);
-    if(log_and_sleep("is eating", philo, philo->args[TIMER_EATING]))
-        return (1);
-    release_forks(philo, first_fork, second_fork);
-    if (log_and_sleep("is sleeping", philo, philo->args[TIMER_SLEEPING]))
-        return (1);
-    return (0);
+	/*if (philo->args[0] == 1)
+	{
+		printf("bro took the only fork and left\n");
+		return (1);
+	}*/
+	if (attempt_fork_acquisition(philo, first_fork, second_fork))
+		return (1);
+	//printf("%li\n", philo->last_meal - philo->start_time);
+	if(log_and_sleep("is eating", philo, philo->args[TIMER_EATING]))
+		return (1);
+	release_forks(philo, first_fork, second_fork);
+	if (log_and_sleep("is sleeping", philo, philo->args[TIMER_SLEEPING]))
+		return (1);
+	return (0);
 }
 
 static int attempt_fork_acquisition(t_philo *philo, int first, int second)
 {
-    while (1)
-    {
+	pthread_mutex_lock(&philo->mutexes[MUTEX_MEAL]);
+	philo->last_meal = current_timestamp_ms();
+	//printf("%li\n", philo->last_meal - philo->start_time);
+	pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
+	while (1)
+	{
 		if (check_dead(philo))
 			return (1);
-        pthread_mutex_lock(&philo->forks[first].mutex);
-        if (philo->forks[first].state == 0)
-        {
-            pthread_mutex_lock(&philo->forks[second].mutex);
-            if (philo->forks[second].state == 0)
-            {
-                philo->forks[first].state = 1;
-                philo->forks[second].state = 1;
-                pthread_mutex_unlock(&philo->forks[second].mutex);
-                pthread_mutex_unlock(&philo->forks[first].mutex);
-                return (0);
-            }
-            pthread_mutex_unlock(&philo->forks[second].mutex);
-        }
-        pthread_mutex_unlock(&philo->forks[first].mutex);
-        usleep(1000);
-    }
-    pthread_mutex_lock(&philo->mutexes[MUTEX_MEAL]);
-	philo->last_meal = current_timestamp_ms();
-    pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
+		pthread_mutex_lock(&philo->forks[first].mutex);
+		if (philo->forks[first].state == 0)
+		{
+			pthread_mutex_lock(&philo->forks[second].mutex);
+			if (philo->forks[second].state == 0)
+			{
+				philo->forks[first].state = 1;
+				philo->forks[second].state = 1;
+				pthread_mutex_unlock(&philo->forks[second].mutex);
+				pthread_mutex_unlock(&philo->forks[first].mutex);
+				return (0);
+			}
+			pthread_mutex_unlock(&philo->forks[second].mutex);
+		}
+		pthread_mutex_unlock(&philo->forks[first].mutex);
+		usleep(1000);
+	}
 }
 
 static void release_forks(t_philo *philo, int first, int second)
 {
-    pthread_mutex_lock(&philo->forks[first].mutex);
-    philo->forks[first].state = 0;
-    pthread_mutex_unlock(&philo->forks[first].mutex);
+	pthread_mutex_lock(&philo->forks[first].mutex);
+	philo->forks[first].state = 0;
+	pthread_mutex_unlock(&philo->forks[first].mutex);
 
-    pthread_mutex_lock(&philo->forks[second].mutex);
-    philo->forks[second].state = 0;
-    pthread_mutex_unlock(&philo->forks[second].mutex);
+	pthread_mutex_lock(&philo->forks[second].mutex);
+	philo->forks[second].state = 0;
+	pthread_mutex_unlock(&philo->forks[second].mutex);
 }
 
 int check_dead(t_philo *philo)
 {
-    long now;
-    int dead_status;
+	long	since_meal;
+	int		dead_status;
 
-    pthread_mutex_lock(&philo->mutexes[MUTEX_DEAD]);
-    dead_status = *philo->dead;
-    pthread_mutex_unlock(&philo->mutexes[MUTEX_DEAD]);
-    if (dead_status)
-        return 1;
-
-    pthread_mutex_lock(&philo->mutexes[MUTEX_MEAL]);
-    now = current_timestamp_ms();
-    if (now - philo->last_meal > philo->args[TIMER_DEAD])
-    {
-        pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
-
-        pthread_mutex_lock(&philo->mutexes[MUTEX_DEAD]);
-        *philo->dead = 1;
-        pthread_mutex_unlock(&philo->mutexes[MUTEX_DEAD]);
-
-        printf("%li %i died\n", now - philo->start_time, philo->id);
-        return 1;
-    }
-    pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
-    return 0;
+	pthread_mutex_lock(philo->dead_mutex);
+	dead_status = *philo->dead;
+	if (dead_status)
+	{
+		pthread_mutex_unlock(philo->dead_mutex);
+		return 1;
+	}
+	pthread_mutex_lock(&philo->mutexes[MUTEX_MEAL]);
+	since_meal = current_timestamp_ms() - philo->last_meal;
+	pthread_mutex_unlock(&philo->mutexes[MUTEX_MEAL]);
+	if (since_meal > philo->args[TIMER_DEAD])
+	{
+		//printf("flag: %i\n", *philo->dead);
+		*philo->dead = 1;
+		printf("%li %i died\n",
+			current_timestamp_ms() - philo->start_time,
+			philo->id);
+		pthread_mutex_unlock(philo->dead_mutex);
+		return 1;
+	}
+	pthread_mutex_unlock(philo->dead_mutex);
+	return 0;
 }
 
 /*

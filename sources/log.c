@@ -7,17 +7,16 @@ void	ft_putnbr_fd(long n, int fd);
 
 int	log_and_sleep(const char *action, t_philo *philo, int duration)
 {
-	long	start;
 	long	timestamp;
 
 	if (check_dead(philo))
 		return (1);
 	timestamp = current_timestamp_ms() - philo->start_time;
 	printf("%li %i %s\n", timestamp, philo->id, action);
-	start = current_timestamp_ms();
-	while (current_timestamp_ms() - start < duration)
+	while (current_timestamp_ms() - philo->start_time < duration)
 	{	
-		usleep(100);
+		usleep(1000);
+		//printf("%ld\n", current_timestamp_ms() - philo->start_time);
 		if (check_dead(philo))
 			return (1);
 	}
