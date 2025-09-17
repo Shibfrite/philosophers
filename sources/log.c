@@ -1,12 +1,51 @@
 #include "philosophers.h"
 
-long	current_timestamp_ms(void)
-{
-	struct timeval  tv;
+long	current_timestamp_ms(void);
+size_t  ft_strlen(const char *s);
+void	ft_putnbr_fd(long n, int fd);
+//void	fast_log(const char *action, t_philoeters *param);
 
-	gettimeofday(&tv, NULL);
-	return ((tv.tv_sec * 1000L) + (tv.tv_usec / 1000L));
+void	log_and_sleep(const char *action, t_philo *philo, int duration)
+{
+	long	start;
+	long	timestamp;
+
+	timestamp = current_timestamp_ms() - philo->start_time;
+	printf("%li %i %s\n", timestamp, philo->id, action);
+	start = current_timestamp_ms();
+	while (current_timestamp_ms() - start < duration)
+		usleep(100);
 }
+/*
+void	log_and_sleep(const char *action, t_philo *philo, int duration)
+{
+	long	start;
+	long	is_dead;
+	long	timestamp;
+
+	pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
+	is_dead = pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
+	pthread_mutex_unlock(philo->mutexes[MUTEX_DEAD]);
+	if (!is_dead)
+		return ;
+	timestamp = current_timestamp_ms() - philo->start_time;
+	printf("%li %i %s\n", timestamp, philo->id, action);
+	start = current_timestamp_ms();
+	while (current_timestamp_ms() - start < duration)
+	{
+		pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
+		is_dead = *philo->dead_flag;
+		pthread_mutex_unlock(philo->mutexes[MUTEX_DEAD]);
+		//if (is_dead || check_dead(philo))
+			return ;
+		usleep(100);
+	}
+}*/
+/*
+void	fast_log(const char *action, t_philoeters *param)
+{
+}
+*/
 
 void	ft_putnbr_fd(long n, int fd)
 {
@@ -31,40 +70,10 @@ size_t  ft_strlen(const char *s)
 	return (p - s);
 }
 
-
-void	fast_log(const char *action, t_parameters *param)
+long	current_timestamp_ms(void)
 {
-	long	timestamp = current_timestamp_ms() - param->start_time;
+	struct timeval  tv;
 
-	pthread_mutex_lock(param->mutexes[MUTEX_PRINT]);
-	pthread_mutex_lock(param->mutexes[MUTEX_DEATH]);
-	if (!(*param->death_flag))
-	{
-		ft_putnbr_fd(timestamp, 1);
-		write(1, " ", 1);
-		ft_putnbr_fd(param->philo_id + 1, 1);
-		write(1, " ", 1);
-		write(1, action, ft_strlen(action));
-		write(1, "\n", 1);
-	}
-	pthread_mutex_unlock(param->mutexes[MUTEX_DEATH]);
-	pthread_mutex_unlock(param->mutexes[MUTEX_PRINT]);
-}
-
-void	log_and_sleep(const char *action, t_parameters *param, int duration)
-{
-	long	start;
-	long	is_death;
-
-	fast_log(action, param);
-	start = current_timestamp_ms();
-	while (current_timestamp_ms() - start < duration)
-	{
-		pthread_mutex_lock(param->mutexes[MUTEX_DEATH]);
-		is_death = *param->death_flag;
-		pthread_mutex_unlock(param->mutexes[MUTEX_DEATH]);
-		if (is_death || check_death(param))
-			return;
-		usleep(100);
-	}
+	gettimeofday(&tv, NULL);
+	return ((tv.tv_sec * 1000L) + (tv.tv_usec / 1000L));
 }

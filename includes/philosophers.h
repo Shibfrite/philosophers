@@ -15,30 +15,50 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#define TIMER_DEATH 0
-#define TIMER_EATING 1
-#define TIMER_SLEEPING 2
-#define MEAL_GOAL 3
+//for args
+#define PHILO_NUMBER 0
+#define TIMER_DEAD 1
+#define TIMER_EATING 2
+#define TIMER_SLEEPING 3
+#define MEAL_GOAL 4
 
-#define MUTEX_PRINT 0
-#define MUTEX_DEATH 1
-#define MUTEX_MEAL  2
+#define MUTEX_DEAD 0
+#define MUTEX_MEAL 1
 
 typedef struct s_parameters
 {
 	pthread_mutex_t *forks;
-	pthread_mutex_t *mutexes[3]; // [PRINT, DEATH, MEAL]
+	pthread_mutex_t *mutexes[3]; // [PRINT, DEAD, MEAL]
 	int				timers[3];
 	int				fork_state[200];
-	int				*death_flag;
+	int				*dead_flag;
 	long			*last_meal;
 	int				philo_id;
 	long			start_time;
 } t_parameters;
 
+
+typedef struct s_fork
+{
+	pthread_mutex_t mutex;
+	int				state;
+} t_fork;
+
+typedef struct s_philo
+{
+	pthread_mutex_t *mutexes[2]; // [DEAD, MEAL] (last meal)
+	t_fork			*forks;
+	const int		*args;
+	int				*dead;
+	int				id;
+	long			start_time;
+	long			last_meal;
+
+} t_philo;
+
 long	current_timestamp_ms(void);
-int		check_death(t_parameters *param);
-void	log_and_sleep(const char *action, t_parameters *param, int duration);
+int		check_dead(t_parameters *param);
+void	log_and_sleep(const char *action, t_philo *philo, int duration);
 void	*routine(void *arg);
 void    ft_putnbr_fd(long n, int fd);
-void    fast_log(const char *action, t_parameters *param);
+//void    fast_log(const char *action, t_parameters *param);
