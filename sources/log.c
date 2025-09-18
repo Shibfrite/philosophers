@@ -1,79 +1,40 @@
 #include "philosophers.h"
 
-long	current_timestamp_ms(void);
-size_t  ft_strlen(const char *s);
-void	ft_putnbr_fd(long n, int fd);
-//void	fast_log(const char *action, t_philoeters *param);
+long		current_timestamp_ms(void);
+static int	ft_strcmp(const char *s1, const char *s2);
 
 int	log_and_sleep(const char *action, t_philo *philo, int duration)
 {
 	long	timestamp;
+	long	end_time;
+	int		can_die;
 
-	if (check_dead(philo))
+	can_die = ft_strcmp(action, "is eating");
+	if (can_die && check_dead(philo, "before action"))
 		return (1);
 	timestamp = current_timestamp_ms() - philo->start_time;
 	printf("%li %i %s\n", timestamp, philo->id, action);
-	while (current_timestamp_ms() - philo->start_time < duration)
+	end_time = current_timestamp_ms() + duration;
+	//printf("%ld\n", current_timestamp_ms() - philo->start_time);
+	while (current_timestamp_ms() < end_time)
 	{	
-		usleep(1000);
-		//printf("%ld\n", current_timestamp_ms() - philo->start_time);
-		if (check_dead(philo))
+		usleep(5000);
+		if (can_die && check_dead(philo, "doing action"))
 			return (1);
 	}
 	return (0);
 }
-/*
-void	log_and_sleep(const char *action, t_philo *philo, int duration)
-{
-	long	start;
-	long	is_dead;
-	long	timestamp;
 
-	pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
-	is_dead = pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
-	pthread_mutex_unlock(philo->mutexes[MUTEX_DEAD]);
-	if (!is_dead)
-		return ;
-	timestamp = current_timestamp_ms() - philo->start_time;
-	printf("%li %i %s\n", timestamp, philo->id, action);
-	start = current_timestamp_ms();
-	while (current_timestamp_ms() - start < duration)
+static int	ft_strcmp(const char *s1, const char *s2)
+{
+	if (!s1 || !s2)
+		return (0);
+	while (*s1 && (*s1 == *s2))
 	{
-		pthread_mutex_lock(philo->mutexes[MUTEX_DEAD]);
-		is_dead = *philo->dead_flag;
-		pthread_mutex_unlock(philo->mutexes[MUTEX_DEAD]);
-		//if (is_dead || check_dead(philo))
-			return ;
-		usleep(100);
+		s1++;
+		s2++;
 	}
-}*/
-/*
-void	fast_log(const char *action, t_philoeters *param)
-{
-}
-*/
-
-void	ft_putnbr_fd(long n, int fd)
-{
-	char	c;
-
-	if (n < 0)
-	{
-		write(fd, "-", 1);
-		n = -n;
-	}
-	if (n >= 10)
-		ft_putnbr_fd(n / 10, fd);
-	c = '0' + (n % 10);
-	write(fd, &c, 1);
-}
-
-size_t  ft_strlen(const char *s)
-{
-	const char *p = s;
-	while (*p)
-		p++;
-	return (p - s);
+	return (*s1 - *s2);
 }
 
 long	current_timestamp_ms(void)

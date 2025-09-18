@@ -6,7 +6,7 @@
 /*   By: makurek <marvin@42.fr>			+#+			*/
 /*							+#+			 */
 /*   Created: 2025/04/28 14:06:43 by makurek	#+#	#+#		*/
-/*   Updated: 2025/09/17 16:30:54 by makurek          ###   ####lausanne.ch   */
+/*   Updated: 2025/09/18 16:24:17 by makurek          ###   ####lausanne.ch   */
 /*										*/
 /* ************************************************************************** */
 
@@ -59,13 +59,14 @@ typedef struct s_philo
 	const int		*args;
 	int				*dead;
 	int				id;
+	int				eat_goal;
 	long			start_time;
 	long			last_meal;
 
 } t_philo;
 
 long	current_timestamp_ms(void);
-int		check_dead(t_philo *param);
+int		check_dead(t_philo *param, char *context);
 int		log_and_sleep(const char *action, t_philo *philo, int duration);
 void	*routine(void *arg);
 void    ft_putnbr_fd(long n, int fd);
