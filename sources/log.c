@@ -10,16 +10,15 @@ int	log_and_sleep(const char *action, t_philo *philo, int duration)
 	int		can_die;
 
 	can_die = ft_strcmp(action, "is eating");
-	if (can_die && check_dead(philo, "before action"))
+	if (can_die && check_dead(philo))
 		return (1);
 	timestamp = current_timestamp_ms() - philo->start_time;
 	printf("%li %i %s\n", timestamp, philo->id, action);
 	end_time = current_timestamp_ms() + duration;
-	//printf("%ld\n", current_timestamp_ms() - philo->start_time);
 	while (current_timestamp_ms() < end_time)
 	{	
-		usleep(5000);
-		if (can_die && check_dead(philo, "doing action"))
+		usleep(1000);
+		if (can_die && check_dead(philo))
 			return (1);
 	}
 	return (0);

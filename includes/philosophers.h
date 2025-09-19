@@ -6,7 +6,7 @@
 /*   By: makurek <marvin@42.fr>			+#+			*/
 /*							+#+			 */
 /*   Created: 2025/04/28 14:06:43 by makurek	#+#	#+#		*/
-/*   Updated: 2025/09/18 16:24:17 by makurek          ###   ####lausanne.ch   */
+/*   Updated: 2025/09/19 17:10:19 by makurek          ###   ####lausanne.ch   */
 /*										*/
 /* ************************************************************************** */
 
@@ -65,9 +65,8 @@ typedef struct s_philo
 
 } t_philo;
 
-long	current_timestamp_ms(void);
-int		check_dead(t_philo *param, char *context);
-int		log_and_sleep(const char *action, t_philo *philo, int duration);
+int      manage_threads_and_mutexes(const int *args);
 void	*routine(void *arg);
-void    ft_putnbr_fd(long n, int fd);
-//void    fast_log(const char *action, t_parameters *param);
+int		check_dead(t_philo *param);
+int		log_and_sleep(const char *action, t_philo *philo, int duration);
+long	current_timestamp_ms(void);
