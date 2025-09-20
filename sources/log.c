@@ -16,7 +16,7 @@ int	log_and_sleep(const char *action, t_philo *philo, int duration)
 	printf("%li %i %s\n", timestamp, philo->id, action);
 	end_time = current_timestamp_ms() + duration;
 	while (current_timestamp_ms() < end_time)
-	{	
+	{
 		usleep(1000);
 		if (can_die && check_dead(philo))
 			return (1);
@@ -38,7 +38,7 @@ static int	ft_strcmp(const char *s1, const char *s2)
 
 long	current_timestamp_ms(void)
 {
-	struct timeval  tv;
+	struct timeval	tv;
 
 	gettimeofday(&tv, NULL);
 	return ((tv.tv_sec * 1000L) + (tv.tv_usec / 1000L));

@@ -8,7 +8,7 @@ INC_DIR 	:= includes
 SRC_DIR 	:= sources
 OBJ_DIR		:= objects
 
-SRC_FILES   := main.c routine.c log.c threads.c
+SRC_FILES   := main.c routine.c log.c threads.c fork.c
 SRC_PREFIX  := $(SRC_DIR)/
 SRCS        := $(addprefix $(SRC_PREFIX),$(SRC_FILES))
 OBJS		:= $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)

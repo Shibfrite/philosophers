@@ -1,6 +1,7 @@
 #include "philosophers.h"
 
 static int	parsing(const char **args, int *args_new);
+static int	ft_atoi(const char *str);
 
 int	main(int ac, const char **args)
 {
@@ -17,7 +18,6 @@ int	main(int ac, const char **args)
 	return (0);
 }
 
-static int	ft_atoi(const char *str);
 static int	parsing(const char **args, int *args_num)
 {
 	int	*start;
@@ -25,7 +25,7 @@ static int	parsing(const char **args, int *args_num)
 	if (!args || !args_num)
 		return (1);
 	start = args_num;
-	while(*++args)
+	while (*++args)
 	{
 		*args_num = ft_atoi(*args);
 		if (*args_num == -1)

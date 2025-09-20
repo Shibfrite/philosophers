@@ -2,44 +2,50 @@
 
 static void		init_fork(t_fork *fork);
 static t_philo	init_philo(const int *args, long start, int i, int *dead_flag);
+static void		create_philo(t_context *ctx);
 
-int  manage_threads_and_mutexes(const int *args)
+int	manage_threads_and_mutexes(const int *args)
 {
-	pthread_mutex_t dead_mutex;
-	pthread_t		thread_id[MAX_PHILO];
-	t_philo			philo[MAX_PHILO];
-	t_fork			forks[MAX_PHILO];
-	long			start;
-	int				dead;
-	int				i;
+	t_context	ctx;
+	int			i;
 
-	start = current_timestamp_ms();
-	dead = 0;
-	pthread_mutex_init(&dead_mutex, NULL);
+	ctx.args = args;
 	i = 0;
-	init_fork(&forks[i]);
 	while (i < args[0])
-	{
-		if (i + 1 <= args[0])
-			init_fork(&forks[i + 1]);
-		philo[i] = init_philo(args, start, i, &dead);
-		philo[i].forks = forks;
-		philo[i].dead_mutex = &dead_mutex;
-		if (args[4])
-			philo[i].eat_goal = args[4];
-		else	
-			philo[i].eat_goal = -1;
-		pthread_create(&thread_id[i], NULL, routine, &philo[i]);
-		++i;
-	}
-	while (i--)
-		pthread_join(thread_id[i], NULL);
+		init_fork(&ctx.forks[i++]);
+	pthread_mutex_init(&ctx.dead_mutex, NULL);
+	create_philo(&ctx);
+	i = 0;
+	while (i < args[0])
+		pthread_join(ctx.thread_id[i++], NULL);
 	return (0);
 }
 
-static t_philo init_philo(const int *args, long start, int i, int *dead_flag)
+static void	create_philo(t_context *ctx)
 {
-	t_philo philo;
+	int		i;
+	long	start;
+
+	start = current_timestamp_ms();
+	ctx->dead = 0;
+	i = 0;
+	while (i < ctx->args[0])
+	{
+		ctx->philo[i] = init_philo(ctx->args, start, i, &ctx->dead);
+		ctx->philo[i].dead_mutex = &ctx->dead_mutex;
+		ctx->philo[i].forks = ctx->forks;
+		if (ctx->args[4])
+			ctx->philo[i].eat_goal = ctx->args[4];
+		else
+			ctx->philo[i].eat_goal = -1;
+		pthread_create(&ctx->thread_id[i], NULL, routine, &ctx->philo[i]);
+		i++;
+	}
+}
+
+static t_philo	init_philo(const int *args, long start, int i, int *dead_flag)
+{
+	t_philo	philo;
 
 	philo.id = i;
 	philo.start_time = start;
@@ -49,7 +55,6 @@ static t_philo init_philo(const int *args, long start, int i, int *dead_flag)
 	philo.dead = dead_flag;
 	return (philo);
 }
-
 
 static void	init_fork(t_fork *fork)
 {

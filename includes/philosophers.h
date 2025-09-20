@@ -27,34 +27,22 @@
 
 #define MAX_PHILO 200
 
-typedef struct s_parameters
-{
-	pthread_mutex_t *forks;
-	pthread_mutex_t *mutexes[3]; // [PRINT, DEAD, MEAL]
-	int				timers[3];
-	int				fork_state[200];
-	int				*dead_flag;
-	long			*last_meal;
-	int				philo_id;
-	long			start_time;
-} t_parameters;
-
 typedef struct s_thread_info
 {
-	pthread_mutex_t mutex;
+	pthread_mutex_t	mutex;
 	int				state;
-} t_thread_info;
+}	t_thread_info;
 
 typedef struct s_fork
 {
-	pthread_mutex_t mutex;
+	pthread_mutex_t	mutex;
 	int				state;
-} t_fork;
+}	t_fork;
 
 typedef struct s_philo
 {
-	pthread_mutex_t mutexes[2]; // [DEAD, MEAL] (last meal)
-	pthread_mutex_t *dead_mutex; // [DEAD, MEAL] (last meal)
+	pthread_mutex_t	mutexes[2];
+	pthread_mutex_t	*dead_mutex;
 	t_fork			*forks;
 	const int		*args;
 	int				*dead;
@@ -63,10 +51,22 @@ typedef struct s_philo
 	long			start_time;
 	long			last_meal;
 
-} t_philo;
+}	t_philo;
 
-int      manage_threads_and_mutexes(const int *args);
+typedef struct s_context
+{
+	const int		*args;
+	pthread_mutex_t	dead_mutex;
+	pthread_t		thread_id[MAX_PHILO];
+	t_philo			philo[MAX_PHILO];
+	t_fork			forks[MAX_PHILO];
+	int				dead;
+}	t_context;
+
+int		manage_threads_and_mutexes(const int *args);
 void	*routine(void *arg);
+void	release_forks(t_philo *philo, int first, int second);
+int		attempt_fork_acquisition(t_philo *philo, int first, int second);
 int		check_dead(t_philo *param);
 int		log_and_sleep(const char *action, t_philo *philo, int duration);
 long	current_timestamp_ms(void);
