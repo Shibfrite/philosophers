@@ -1,5 +1,3 @@
-
-
 # the philosophers
 Philosophers with mutexes and threads.
 
@@ -80,12 +78,11 @@ philosophers, each philosopher has a fork on their left side and a fork on their
 side. If there is only one philosopher, they will have access to just one fork.
 
 • To prevent philosophers from duplicating forks, you should protect each fork’s state
-with a mutexi.
+with a mutexe.
 
-|______________________________________________________________________________________________________________________|
+-------------------------------------------------
 
-# Found information
+## Ambiguous rules
 
-
-
-# Functions made
+- It isn't said when start_time should start. it could both be at the start of each philo or at the start of the program.
+- We can have different philosophers starting at different points in their cycle.
